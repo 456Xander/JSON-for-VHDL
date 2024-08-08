@@ -53,4 +53,6 @@ context json_ctx is
 	use JSON.json.t_unsigned_vector;
 	use JSON.json.jsonGetSignedArray;
 	use JSON.json.jsonGetUnsignedArray;
+	use JSON.json.jsonGetSigned;
+	use JSON.json.jsonGetUnsigned;
 end context;
