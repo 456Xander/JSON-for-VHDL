@@ -1,0 +1,4 @@
+[libraries]
+json.files = [
+    "src/*.vhdl"
+]

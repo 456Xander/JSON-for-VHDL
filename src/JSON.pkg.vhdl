@@ -40,6 +40,7 @@ use			Std.TextIO.all;
 
 library	IEEE;
 use			IEEE.STD_LOGIC_1164.all;
+use     IEEE.NUMERIC_STD.all;
 
 
 use work.Encodings.all;
@@ -86,6 +87,9 @@ package JSON is
 
 	type T_JSON_PATH is array(NATURAL range <>) of T_JSON_PATH_ELEMENT;
 
+	type t_signed_vector is array(natural range <>) of u_signed;
+	type t_unsigned_vector is array(natural range <>) of u_unsigned;
+
 	impure function jsonLoad(Stream : STRING) return T_JSON;
 	impure function jsonParseStream(Stream : STRING) return T_JSON;
 	impure function jsonReadFile(Filename : STRING; StrLength : INTEGER) return STRING;
@@ -105,6 +109,13 @@ package JSON is
 
 	function jsonGetBoolean(JSONContext : T_JSON; Path : STRING) return BOOLEAN;
 	function jsonGetString(JSONContext : T_JSON; Path : STRING) return STRING;
+
+	function jsonGetSignedArray(JSONContext: T_JSON; Path : string; size: positive) return t_signed_vector;
+	function jsonGetUnsignedArray(JSONContext: T_JSON; Path : string; size: positive) return t_unsigned_vector;
+
+	function jsonGetSignedArray(JSONContext: T_JSON; Path : string; size: positive; len: positive) return t_signed_vector;
+	function jsonGetUnsignedArray(JSONContext: T_JSON; Path : string; size: positive; len: positive) return t_unsigned_vector;
+
 	function jsonGetIntegerArray(JSONContext : T_JSON; Path : string) return integer_vector;
 	function jsonGetIntegerArray(JSONContext : T_JSON; Path : string; Len : positive) return integer_vector;
 --	function jsonGetRealArray(JSONContext : T_JSON; Path : string) return real_vector;
@@ -229,6 +240,35 @@ package body JSON is
 		end loop;
 		return Result;
 --		return INTEGER'value(str);			-- 'value(...) is not supported by Vivado Synth 2014.1
+	end function;
+
+	function to_signed_dec(str: STRING; size: positive) return signed is
+		variable Result: signed(size-1 downto 0);
+	begin
+		Result := (others => '0');
+		if str(str'left) = '-' then
+			if str'left = str'high then
+				return -to_signed_dec(str(str'left - 1 downto str'right), size);
+			else
+				return -to_signed_dec(str(str'left + 1 to str'right), size);
+			end if;
+		end if;
+
+		for i in str'range loop
+			Result	:= resize(Result * 10 + (character'pos(str(i)) - character'pos('0')), Result);
+		end loop;
+
+		return Result;
+	end function;
+
+	function to_unsigned_dec(str: STRING; size: positive) return unsigned is
+		variable Result: unsigned(size-1 downto 0);
+	begin
+		Result := (others => '0');
+		for i in str'range loop
+			Result	:= resize(Result * 10 + (character'pos(str(i)) - character'pos('0')), Result);
+		end loop;
+		return Result;
 	end function;
 
 	function errorMessage(str : string) return STRING is
@@ -1690,4 +1730,42 @@ package body JSON is
 		if (ElementIndex = 0) then return FALSE; end if;
 		return (Element.ElementType = ELEM_NUMBER);
 	end function;
+
+
+	function jsonGetSignedArray(JSONContext: T_JSON; Path : string; size: positive) return t_signed_vector is
+		variable len: natural := 0;
+	begin
+		while jsonIsNumber(JSONContext, Path & "/" & to_string(len)) loop
+			len := len+1;
+		end loop;
+		return jsonGetSignedArray(JSONContext, Path, size, len);
+	end function;
+
+	function jsonGetUnsignedArray(JSONContext: T_JSON; Path : string; size: positive) return t_unsigned_vector is
+		variable len: natural := 0;
+	begin
+		while jsonIsNumber(JSONContext, Path & "/" & to_string(len)) loop
+			len := len+1;
+		end loop;
+		return jsonGetUnsignedArray(JSONContext, Path, size, len);
+	end function;
+
+	function jsonGetSignedArray(JSONContext: T_JSON; Path : string; size: positive; len: positive) return t_signed_vector is
+		variable return_value : t_signed_vector(Len-1 downto 0)(size-1 downto 0);
+	begin
+		for i in 0 to Len-1 loop
+			return_value(i) := to_signed_dec(jsonGetString(JSONContext, Path & "/" & to_string(i)), size);
+		end loop;
+		return return_value;
+	end function;
+
+	function jsonGetUnsignedArray(JSONContext: T_JSON; Path : string; size: positive; len: positive) return t_unsigned_vector is
+		variable return_value : t_unsigned_vector(Len-1 downto 0)(size-1 downto 0);
+	begin
+		for i in 0 to Len-1 loop
+			return_value(i) := to_unsigned_dec(jsonGetString(JSONContext, Path & "/" & to_string(i)), size);
+		end loop;
+		return return_value;
+	end function;
+
 end package body;

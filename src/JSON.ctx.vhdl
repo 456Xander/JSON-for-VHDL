@@ -49,4 +49,8 @@ context json_ctx is
   use JSON.json.jsonIsNull;
   use JSON.json.jsonIsString;
   use JSON.json.jsonIsNumber;
+	use JSON.json.t_signed_vector;
+	use JSON.json.t_unsigned_vector;
+	use JSON.json.jsonGetSignedArray;
+	use JSON.json.jsonGetUnsignedArray;
 end context;
